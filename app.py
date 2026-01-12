@@ -49,7 +49,6 @@ st.markdown("""
 
 # --- 2. 세션 상태 초기화 ---
 if 'db_data' not in st.session_state:
-    # 초기 샘플 데이터
     st.session_state.db_data = pd.DataFrame({
         'Date': pd.date_range(start='2024-01-01', periods=5, freq='D'),
         'Exposures': np.random.randint(1000, 5000, 5),
@@ -69,13 +68,11 @@ if 'report_log' not in st.session_state:
 # --- 3. 핵심 기능 함수 ---
 
 def safe_display_df(df):
-    """데이터 표시 에러 방지"""
     df_display = df.copy()
     df_display.columns = [str(c) for c in df_display.columns]
     return df_display.fillna("")
 
 def generate_pdf_report(df):
-    """PDF 리포트 생성 (에러 방지 문법)"""
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("helvetica", 'B', 16)
@@ -86,13 +83,9 @@ def generate_pdf_report(df):
     return bytes(pdf.output())
 
 def get_openai_response(prompt, df):
-    """데이터 유무와 관계없이 에러 없이 응답 생성 (강화된 로직)"""
-    
-    # 1. 안전하게 요약 정보 추출 (컬럼 존재 여부 체크)
     cols = df.columns.tolist()
     total_rows = len(df)
     
-    # 노출수/비용 등 수치형 데이터 정보 요약
     stats_info = ""
     num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     if num_cols:
@@ -100,7 +93,6 @@ def get_openai_response(prompt, df):
         for c in num_cols:
             stats_info += f"- {c}: 평균 {df[c].mean():,.2f}, 최대 {df[c].max():,.2f}\n"
     
-    # 날짜 정보 요약 (Date 컬럼이 있을 때만 계산)
     date_range = "정보 없음"
     date_col = next((c for c in cols if 'date' in str(c).lower() or '날짜' in str(c)), None)
     if date_col:
@@ -110,7 +102,6 @@ def get_openai_response(prompt, df):
         except:
             date_range = "날짜 형식 분석 불가"
 
-    # AI에게 전달할 최종 컨텍스트
     data_summary = f"""
     [현재 DB 데이터 상태]
     - 사용 가능한 컬럼: {', '.join(cols)}
@@ -159,7 +150,6 @@ if menu == "Navigator Chat":
             with st.expander("📄 데이터 미리보기", expanded=True):
                 st.dataframe(safe_display_df(new_df.head(3)), width='stretch')
                 if st.button("Confirm: DB 등록"):
-                    # 기존 DB와 컬럼이 달라도 합칠 수 있도록 처리
                     st.session_state.db_data = pd.concat([st.session_state.db_data, new_df], ignore_index=True, sort=False)
                     st.session_state.upload_log.insert(0, {"time": datetime.now().strftime("%H:%M:%S"), "filename": uploaded_file.name, "rows": len(new_df)})
                     st.success("등록 완료!")
@@ -176,8 +166,6 @@ if menu == "Navigator Chat":
 # --- 6. 페이지 2: Dashboard ---
 elif menu == "Dashboard":
     st.markdown('<p class="main-title">System Dashboard</p>', unsafe_allow_html=True)
-    
-    # 수치형 데이터가 있는지 체크하여 대시보드 표시
     num_df = st.session_state.db_data.select_dtypes(include=[np.number])
     
     c1, c2, c3 = st.columns(3)
